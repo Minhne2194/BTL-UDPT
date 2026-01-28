@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # 1. Database PostgreSQL (Dùng DBeaver connect vào đây)
+  postgres:
+    image: postgres:15-alpine
+    container_name: course_pg
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: course_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db-init:/docker-entrypoint-initdb.d
+
+  # 2. Redis (Xử lý Slot nhanh)
+  redis:
+    image: redis:alpine
+    container_name: course_redis
+    ports:
+      - "6379:6379"
+
+  # 3. Backend (Node.js)
+  server:
+    build: ./server
+    container_name: course_api
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - DB_USER=admin
+      - DB_PASS=password123
+      - DB_NAME=course_db
+    depends_on:
+      - postgres
+      - redis
+
+  # 4. Frontend (React Vite)
+  client:
+    build: ./client
+    container_name: course_ui
+    ports:
+      - "3000:5173"
+    volumes:
+      - ./client/src:/app/src
+    depends_on:
+      - server
